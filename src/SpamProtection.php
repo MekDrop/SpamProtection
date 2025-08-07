@@ -18,33 +18,33 @@ class SpamProtection
     /**
      * @var bool whether or not to treat Tor Exit nodes as Spam
      */
-    protected $allowTorNodes = false;
+    protected bool $allowTorNodes = false;
 
 
     /**
      * @var string the base url for the StopForumSpam api, if this ever changes, just change this string
      */
-    protected $baseApiUrl = "https://api.stopforumspam.org/api";
+    protected string $baseApiUrl = "https://api.stopforumspam.org/api";
 
 
     /**
      * @var string the API key for StopForumSpam.org, it's only neccesary if you want to submit spam reports using submitReport()
      */
-    protected $apiKey;
+    protected string $apiKey;
 
 
     /**
      * @var int the frequency of spam reports that a username/email/ip must
      * have to be considered spam, defaults to THRESHOLD_STRICT, which is 1 spam report
      */
-    protected $frequencyThreshold;
-    protected $curlEnabled;
+    protected int $frequencyThreshold;
+    protected bool $curlEnabled;
 
     /**
-     * @var int the confidence that the the username/email/ip is spam, defaults to false,
+     * @var int|false the confidence that the the username/email/ip is spam, defaults to false,
      * which means any confidence level
      */
-    protected $confidenceThreshold = false;
+    protected int|false $confidenceThreshold = false;
 
     // Convenience constants for various Thresholds
     const THRESHOLD_STRICT = 1;
@@ -64,12 +64,17 @@ class SpamProtection
 
     /**
      * Create a new SpamProtection Object
-     * @param int $frequencyThreshold the frequency of spam reports that a username/email/ip must have to be considered spam, defaults to THRESHOLD_STRICT, which is 1 spam report
-     * @param bool $allowTorNodes (optional) whether or not to treat Tor Exit nodes as spam
-     * @param string $apiKey (optional) Your StopForumSpam.org API key, only neccesary if you plan on using submitReport()
+     * @param int|null $frequencyThreshold the frequency of spam reports that a username/email/ip must have to be considered spam, defaults to THRESHOLD_STRICT, which is 1 spam report
+     * @param bool|null $allowTorNodes (optional) whether or not to treat Tor Exit nodes as spam
+     * @param string|null $apiKey (optional) Your StopForumSpam.org API key, only neccesary if you plan on using submitReport()
+     * @param int|null $confidenceThreshold
      */
-    public function __construct($frequencyThreshold = self::THRESHOLD_STRICT, $allowTorNodes = null, $apiKey = null, $confidenceThreshold = null)
-    {
+    public function __construct(
+        ?int $frequencyThreshold = self::THRESHOLD_STRICT,
+        ?bool $allowTorNodes = null,
+        ?string $apiKey = null,
+        ?int $confidenceThreshold = null
+    ) {
         if (!is_null($frequencyThreshold)) {
             $this->frequencyThreshold = $frequencyThreshold;
         }
@@ -93,20 +98,14 @@ class SpamProtection
 
     /**
      * Builds the URL for the spam check queries
-     * @param string $type ip|email|username the type of spam to check $value for
+     * @param Types $type ip|email|username the type of spam to check $value for
      * @param string $value the ip, email or username to check for spam reports
      * @return string the full url to the api
      */
-    protected function buildUrl($type, $value)
+    protected function buildUrl(Types $type, string $value): string
     {
-        $type = trim(strtolower($type));
-
-        if (!in_array($type, ["ip", "email", "username"])) {
-            throw new \InvalidArgumentException("Type of " . $type . " is not supported by the API");
-        }
-
         $url = $this->baseApiUrl . "?";
-        $url .= $type . "=";
+        $url .= $type->value . "=";
         $url .= urlencode($value);
 
         // If Tor nodes are not allowed, add it as a flag.
@@ -122,7 +121,7 @@ class SpamProtection
      * @param string $url the url to send a GET request to
      * @return mixed
      */
-    protected function sendRequest($url)
+    protected function sendRequest(string $url): mixed
     {
 
         $response = null;
@@ -142,7 +141,7 @@ class SpamProtection
     }
 
 
-    public function check($type, $value)
+    public function check(Types $type, string $value): bool
     {
         $fullApiUrl = $this->buildUrl($type, $value);
         $response = $this->sendRequest($fullApiUrl);
@@ -156,14 +155,14 @@ class SpamProtection
             throw new \Exception("API Check Unsuccessful");
         }
 
-        if ($json->success == 1 && $json->{$type}->appears == 1) {
+        if ((int)$json->success === 1 && (int)$json->{$type->value}->appears === 1) {
             // Frequency Threshold check
-            if ($json->{$type}->frequency < $this->frequencyThreshold) {
+            if ($json->{$type->value}->frequency < $this->frequencyThreshold) {
                 return false;
             }
 
             // Run Confidence Threshold check
-            if ($this->confidenceThreshold && $json->{$type}->confidence < $this->confidenceThreshold) {
+            if ($this->confidenceThreshold && $json->{$type->value}->confidence < $this->confidenceThreshold) {
                 return false;
             }
 
@@ -181,7 +180,7 @@ class SpamProtection
      * @throws \Exception
      * @return bool true if IP is associated with spam, false if not, throws an \Exception on failure
      */
-    public function checkIP($ip)
+    public function checkIP(string $ip): bool
     {
         return $this->check(Types::IP, $ip);
     }
@@ -191,10 +190,10 @@ class SpamProtection
      * Function used to query the StopForumSpam API for an Email address and return if it is registered as a spam email.
      *
      * @param string $email the Email address to search the API for.
-     * @throws \Exception
      * @return bool true means the IP is a spammy email, if false, it's not, throws an \Exception on failure
+     *@throws \Exception
      */
-    public function checkEmail($email)
+    public function checkEmail(string $email): bool
     {
         return $this->check(Types::EMAIL, $email);
     }
@@ -204,10 +203,10 @@ class SpamProtection
      * Function used to query the StopForumSpam API for an Email address and return if it is registered as a spam email.
      *
      * @param string $username the Email address to search the API for.
-     * @throws \Exception
      * @return bool true means the IP is a spammy email, if false, it's not, throws an \Exception on failure
+     *@throws \Exception
      */
-    public function checkUsername($username)
+    public function checkUsername(string $username): bool
     {
         return $this->check(Types::USERNAME, $username);
     }
@@ -216,15 +215,15 @@ class SpamProtection
     /**
      * Function used to submit a spam report to StopForumSpam,
      *
-     * @author  Helge Sverre <email@helgesverre.com>
-     *
      * @param string $username Username of the spammer.
      * @param string $ip the ip of the spammer
      * @param string $evidence evidence of spam, usually you pass it a copy of the original email(with all the headers etc).
      * @param string $email the spammer's email.
      * @return bool returns true if report was submitted, \Exception on failure.
+     *@author  Helge Sverre <email@helgesverre.com>
+     *
      */
-    public function submitReport($username, $ip, $evidence, $email)
+    public function submitReport(string $username, string $ip, string $evidence, string $email): bool
     {
 
         if (!$this->apiKey) {
@@ -247,34 +246,22 @@ class SpamProtection
         }
     }
 
-    /**
-     * @return bool|null
-     */
-    public function getAllowTorNodes()
+    public function getAllowTorNodes(): ?bool
     {
         return $this->allowTorNodes;
     }
 
-    /**
-     * @param bool|null $allowTorNodes
-     */
-    public function setAllowTorNodes($allowTorNodes)
+    public function setAllowTorNodes(?bool $allowTorNodes): void
     {
         $this->allowTorNodes = (bool)$allowTorNodes;
     }
 
-    /**
-     * @return null
-     */
-    public function getApiKey()
+    public function getApiKey(): ?string
     {
         return $this->apiKey;
     }
 
-    /**
-     * @param null $apiKey
-     */
-    public function setApiKey($apiKey)
+    public function setApiKey(string $apiKey): void
     {
         $this->apiKey = $apiKey;
     }
@@ -282,17 +269,14 @@ class SpamProtection
     /**
      * @return int the frequency threshold
      */
-    public function getFrequencyThreshold()
+    public function getFrequencyThreshold(): int
     {
         return $this->frequencyThreshold;
     }
 
-    /**
-     * @param int $frequencyThreshold
-     */
-    public function setFrequencyThreshold($frequencyThreshold)
+    public function setFrequencyThreshold(int $frequencyThreshold): void
     {
-        $this->frequencyThreshold = (int)$frequencyThreshold;
+        $this->frequencyThreshold = $frequencyThreshold;
     }
 
 
