@@ -28,16 +28,16 @@ class SpamProtection
 
 
     /**
-     * @var string the API key for StopForumSpam.org, it's only neccesary if you want to submit spam reports using submitReport()
+     * @var string|null the API key for StopForumSpam.org, it's only neccesary if you want to submit spam reports using submitReport()
      */
-    protected string $apiKey;
+    protected ?string $apiKey = null;
 
 
     /**
      * @var int the frequency of spam reports that a username/email/ip must
      * have to be considered spam, defaults to THRESHOLD_STRICT, which is 1 spam report
      */
-    protected int $frequencyThreshold;
+    protected int $frequencyThreshold = self::THRESHOLD_STRICT;
     protected bool $curlEnabled;
 
     /**
@@ -246,7 +246,7 @@ class SpamProtection
         }
     }
 
-    public function getAllowTorNodes(): ?bool
+    public function getAllowTorNodes(): bool
     {
         return $this->allowTorNodes;
     }
@@ -261,7 +261,7 @@ class SpamProtection
         return $this->apiKey;
     }
 
-    public function setApiKey(string $apiKey): void
+    public function setApiKey(?string $apiKey): void
     {
         $this->apiKey = $apiKey;
     }
