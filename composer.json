@@ -1,7 +1,6 @@
 {
   "name": "helgesverre/spamprotection",
   "description": "A Spam Protection class for use in contact forms and comment fields, uses the StopForumSpam API.  ",
-  "version": "1.0.1",
   "type": "library",
   "keywords": [
     "spam",
