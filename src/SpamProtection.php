@@ -47,19 +47,19 @@ class SpamProtection
     protected int|false $confidenceThreshold = false;
 
     // Convenience constants for various Thresholds
-    const THRESHOLD_STRICT = 1;
-    const THRESHOLD_HIGH = 3;
-    const THRESHOLD_MEDIUM = 5;
-    const THRESHOLD_LOW = 10;
+    public const THRESHOLD_STRICT = 1;
+    public const THRESHOLD_HIGH = 3;
+    public const THRESHOLD_MEDIUM = 5;
+    public const THRESHOLD_LOW = 10;
 
-    const CONFIDENCE_STRICT = 99;
-    const CONFIDENCE_HIGH = 80;
-    const CONFIDENCE_MEDIUM = 40;
-    const CONFIDENCE_LOW = 10;
+    public const CONFIDENCE_STRICT = 99;
+    public const CONFIDENCE_HIGH = 80;
+    public const CONFIDENCE_MEDIUM = 40;
+    public const CONFIDENCE_LOW = 10;
 
     // Convenience constants for allowing or disallowing Tor Exit nodes
-    const TOR_ALLOW = true;
-    const TOR_DISALLOW = false;
+    public const TOR_ALLOW = true;
+    public const TOR_DISALLOW = false;
 
 
     /**
