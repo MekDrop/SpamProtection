@@ -2,6 +2,10 @@
 
 namespace Helge\SpamProtection;
 
+use Helge\SpamProtection\Exception\ApiCheckException;
+use Helge\SpamProtection\Exception\ApiKeyMissingException;
+use Helge\SpamProtection\Exception\SubmissionFailedException;
+
 // TODO(25 okt 2015) ~ Helge: add support for a "last seen" cutoff
 
 /**
@@ -148,12 +152,12 @@ class SpamProtection
         $response = $this->sendRequest($fullApiUrl);
 
         if (!$response) {
-            throw new \Exception("API Check Unsuccessful");
+            throw new ApiCheckException();
         }
 
         $json = json_decode($response);
         if (!$json || !is_object($json)) {
-            throw new \Exception("API Check Unsuccessful");
+            throw new ApiCheckException();
         }
 
         if ($json->success == 1 && $json->{$type}->appears == 1) {
@@ -228,7 +232,7 @@ class SpamProtection
     {
 
         if (!$this->apiKey) {
-            throw new \Exception("To submit a spam report you need an API Key");
+            throw new ApiKeyMissingException();
         }
 
         $apiUrl = "http://www.stopforumspam.com/add.php"
@@ -243,7 +247,7 @@ class SpamProtection
         if (preg_match('/data submitted successfully/', $response)) {
             return true;
         } else {
-            throw new \Exception("Submission failed.");
+            throw new SubmissionFailedException();
         }
     }
 
